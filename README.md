@@ -39,7 +39,7 @@ Ensure you have the following installed on your system:
    ```bash
    npm start
    ```
-   *(Windows Users can alternatively double-click the included `Start_Compressor.bat` file.)*
+   *(Windows Users can alternatively double-click the included `VideoCompressor` shortcut file to launch the application silently without opening a background terminal window.)*
 
 ## 🐳 Running via Docker (Backend Only)
 To deploy the compression engine headlessly on a server:
