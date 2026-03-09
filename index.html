@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>VideoCompressor Pro</title>
+    <!-- Use Inter font for a standard professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>VideoCompressor <span class="accent">PRO</span></h1>
+            <p>High-Performance Hardware Video Encoder</p>
+        </header>
+
+        <div class="main-card">
+            
+            <div class="section">
+                <h2>1. Input Videos</h2>
+                <button id="btn-select-files" class="primary-btn">Browse Files</button>
+                <div class="selection-display">
+                    <span id="txt-selected-files">No files selected</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>2. Output Destination</h2>
+                <button id="btn-select-output" class="secondary-btn">Select Folder</button>
+                <div class="selection-display">
+                    <span id="txt-output-dir">No destination selected</span>
+                </div>
+            </div>
+
+            <div class="section flex-row">
+                <div class="option-group">
+                    <h2>3. Quality Preset</h2>
+                    <select id="sel-preset">
+                        <option value="proxy">Lightweight Edit Proxy (1080p, Tiny)</option>
+                        <option value="standard" selected>Standard (Original Res, Medium)</option>
+                        <option value="lossless">Visually Lossless (Original Res, Large)</option>
+                    </select>
+                </div>
+
+                <div class="option-group hardware-box">
+                    <h2>Hardware Acceleration</h2>
+                    <label class="switch-container">
+                        <input type="checkbox" id="chk-gpu" checked>
+                        <span class="checkmark"></span>
+                        <div class="hw-text">
+                            <strong>NVIDIA NVENC</strong>
+                            <small>Uses GPU for faster encoding</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button id="btn-start" class="start-btn" disabled>Start Compression Batch</button>
+            </div>
+
+            <!-- Progress Area -->
+            <div id="progress-container" class="hidden">
+                <div class="progress-header">
+                    <span id="progress-status">Initializing...</span>
+                    <span id="progress-count"></span>
+                </div>
+                <!-- Indeterminate bar since we just track output flow simply for now -->
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-bar"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- The Javascript that connects UI to Electron Preload API -->
+    <script src="renderer.js"></script>
+</body>
+</html>
