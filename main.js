@@ -18,7 +18,7 @@ async function getAllVideos(dirPath, rootDir) {
             results = results.concat(await getAllVideos(fullPath, _rootDir));
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
-            if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext)) {
+            if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !entry.name.startsWith('._')) {
                 results.push({
                     fullPath: fullPath,
                     relativePath: path.relative(_rootDir, fullPath)
@@ -113,7 +113,8 @@ ipcMain.handle('compress:start', async (event, config) => {
                 allMediaForProcessing.push(...videos);
             } else {
                 const ext = path.extname(inputPath).toLowerCase();
-                if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext)) {
+                const basename = path.basename(inputPath);
+                if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !basename.startsWith('._')) {
                     allMediaForProcessing.push({
                         fullPath: inputPath,
                         relativePath: path.basename(inputPath)
@@ -169,6 +170,8 @@ ipcMain.handle('compress:start', async (event, config) => {
             // Tiny 1080p proxy
             args.push('-vf', 'scale=-2:1080');
             args.push('-c:v', videoCodec);
+            // force 4:2:0 for nvenc h264 compatibility
+            args.push('-pix_fmt', 'yuv420p');
             // nvenc uses -cq instead of -crf for constant quality
             if (useGpu) {
                 args.push('-preset', presetSpeed, '-cq', '28');
@@ -190,6 +193,7 @@ ipcMain.handle('compress:start', async (event, config) => {
         } else {
             // Standard
             args.push('-c:v', videoCodec);
+            args.push('-pix_fmt', 'yuv420p');
             if (useGpu) {
                 args.push('-preset', presetSpeed, '-cq', '23');
             } else {
@@ -254,6 +258,12 @@ ipcMain.handle('compress:start', async (event, config) => {
             });
         }).catch(err => {
             console.error(`Error on file ${basename}:`, err);
+
+            // Clean up the 0kb file if encoding crashed instantly
+            if (fs.existsSync(outputFile)) {
+                try { fs.unlinkSync(outputFile); } catch (e) { }
+            }
+
             mainWindow.webContents.send('compress:progress', {
                 status: `Error on ${basename}`,
                 error: true
