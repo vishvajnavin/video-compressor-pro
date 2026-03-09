@@ -73,9 +73,20 @@ btnStart.addEventListener('click', async () => {
             progressStatus.style.color = 'var(--danger)';
         } else {
             progressStatus.innerText = data.status;
-            if (data.rawTime) {
+
+            // Exact Percentage Handling
+            if (data.percent !== undefined) {
+                progressStatus.innerText += ` (${data.percent}%)`;
+                progressBar.style.width = `${data.percent}%`;
+
+                // Switch off indeterminate animation if it's there
+                if (progressContainer.classList.contains('processing-indeterminate')) {
+                    progressContainer.classList.remove('processing-indeterminate');
+                }
+            } else if (data.rawTime) {
                 progressStatus.innerText += ` (Time Mark: ${data.rawTime})`;
             }
+
             if (data.currentFileIndex && data.totalFiles) {
                 progressCount.innerText = `${data.currentFileIndex - 1} / ${data.totalFiles}`;
             }

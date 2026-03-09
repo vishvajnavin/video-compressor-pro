@@ -53,7 +53,7 @@ header p {
     background-color: var(--card-bg);
     border-radius: 12px;
     padding: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border);
 }
 
@@ -131,7 +131,7 @@ button {
 .selection-display {
     margin-top: 10px;
     padding: 12px;
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     border-radius: 6px;
     border: 1px solid var(--border);
     font-size: 13px;
@@ -142,7 +142,7 @@ button {
 select {
     width: 100%;
     padding: 12px;
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border);
     color: white;
     border-radius: 6px;
@@ -157,7 +157,7 @@ select:focus {
 
 /* GPU Toggle Switch */
 .hardware-box {
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 12px;
@@ -200,11 +200,11 @@ select:focus {
     transition: .3s;
 }
 
-.switch-container input:checked ~ .checkmark {
+.switch-container input:checked~.checkmark {
     background-color: var(--accent);
 }
 
-.switch-container input:checked ~ .checkmark:after {
+.switch-container input:checked~.checkmark:after {
     transform: translateX(20px);
 }
 
@@ -240,7 +240,7 @@ select:focus {
 
 .progress-bar-bg {
     height: 8px;
-    background-color: rgba(0,0,0,0.3);
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -252,14 +252,21 @@ select:focus {
     transition: width 0.3s ease;
 }
 
-/* Indeterminate animation while working */
-.processing .progress-bar-fill {
+/* Indeterminate animation while working (fallback) */
+.processing-indeterminate .progress-bar-fill {
     width: 50%;
     animation: indeterminate 2s infinite linear;
     transform-origin: 0% 50%;
 }
 
 @keyframes indeterminate {
-    0% { transform: translateX(-100%); width: 50%; }
-    100% { transform: translateX(200%); width: 50%; }
+    0% {
+        transform: translateX(-100%);
+        width: 50%;
+    }
+
+    100% {
+        transform: translateX(200%);
+        width: 50%;
+    }
 }

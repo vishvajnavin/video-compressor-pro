@@ -5,6 +5,7 @@ const fs = require('fs');
 
 // The absolute path to the Winget FFmpeg installation we know works on this system
 const FFMPEG_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffmpeg.exe";
+const FFPROBE_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffprobe.exe";
 
 let mainWindow;
 
@@ -132,23 +133,45 @@ ipcMain.handle('compress:start', async (event, config) => {
 
         args.push(outputFile);
 
+        // 1. Get total duration of input file for calculating exact percentage
+        let totalDurationSec = 0;
+        try {
+            const probeArgs = ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', file];
+            const probeResult = require('child_process').spawnSync(FFPROBE_PATH, probeArgs);
+            if (probeResult.stdout) {
+                totalDurationSec = parseFloat(probeResult.stdout.toString().trim());
+            }
+        } catch (e) {
+            console.error("Failed to get duration:", e);
+        }
+
         console.log(`Executing FFmpeg: ${args.join(' ')}`);
 
         // Await the completion of this single file before moving to the next
         await new Promise((resolve, reject) => {
             const ffmpeg = spawn(FFMPEG_PATH, args);
 
-            // FFmpeg writes progress to stderr, surprisingly
+            // FFmpeg writes progress to stderr
             ffmpeg.stderr.on('data', (data) => {
                 const output = data.toString();
-                // Simple parsing to find time=00:00:00.00
+                // Find time string like time=00:00:10.50
                 const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
                 if (timeMatch) {
-                    // This is just a basic heartbeat to UI. 
-                    // To do true percentage, we'd need ffprobe to get total duration first.
+                    const hours = parseInt(timeMatch[1], 10);
+                    const mins = parseInt(timeMatch[2], 10);
+                    const secs = parseFloat(timeMatch[3]);
+                    const currentSec = (hours * 3600) + (mins * 60) + secs;
+
+                    let percent = 0;
+                    if (totalDurationSec > 0) {
+                        percent = Math.floor((currentSec / totalDurationSec) * 100);
+                        if (percent > 100) percent = 100;
+                    }
+
                     mainWindow.webContents.send('compress:progress', {
                         status: `Encoding ${basename}...`,
                         rawTime: timeMatch[0],
+                        percent: percent,
                         currentFileIndex: currentIndex,
                         totalFiles: inputFiles.length
                     });
