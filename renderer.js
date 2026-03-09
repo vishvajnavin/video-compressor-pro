@@ -3,6 +3,7 @@ let outputDirectory = null;
 
 // UI Elements
 const btnSelectFiles = document.getElementById('btn-select-files');
+const btnSelectFolders = document.getElementById('btn-select-folders');
 const txtSelectedFiles = document.getElementById('txt-selected-files');
 const btnSelectOutput = document.getElementById('btn-select-output');
 const txtOutputDir = document.getElementById('txt-output-dir');
@@ -27,8 +28,19 @@ function validateStart() {
 btnSelectFiles.addEventListener('click', async () => {
     const files = await window.electronAPI.selectFiles();
     if (files && files.length > 0) {
-        selectedFiles = files;
-        txtSelectedFiles.innerText = `${files.length} file(s) selected`;
+        selectedFiles = selectedFiles.concat(files);
+        txtSelectedFiles.innerText = `${selectedFiles.length} input(s) selected`;
+        txtSelectedFiles.style.color = '#fff';
+        validateStart();
+    }
+});
+
+// 1.5 Browse Folders
+btnSelectFolders.addEventListener('click', async () => {
+    const folders = await window.electronAPI.selectFolders();
+    if (folders && folders.length > 0) {
+        selectedFiles = selectedFiles.concat(folders);
+        txtSelectedFiles.innerText = `${selectedFiles.length} input(s) selected`;
         txtSelectedFiles.style.color = '#fff';
         validateStart();
     }
@@ -51,6 +63,7 @@ btnStart.addEventListener('click', async () => {
     btnStart.setAttribute('disabled', 'true');
     btnStart.innerText = 'Compression in Progress...';
     btnSelectFiles.setAttribute('disabled', 'true');
+    btnSelectFolders.setAttribute('disabled', 'true');
     btnSelectOutput.setAttribute('disabled', 'true');
 
     // Show Progress

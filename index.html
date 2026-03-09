@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>VideoCompressor Pro</title>
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-container">
         <header>
@@ -15,12 +17,15 @@
         </header>
 
         <div class="main-card">
-            
+
             <div class="section">
                 <h2>1. Input Videos</h2>
-                <button id="btn-select-files" class="primary-btn">Browse Files</button>
+                <div class="flex-row">
+                    <button id="btn-select-files" class="primary-btn">Browse Files</button>
+                    <button id="btn-select-folders" class="primary-btn">Browse Folders</button>
+                </div>
                 <div class="selection-display">
-                    <span id="txt-selected-files">No files selected</span>
+                    <span id="txt-selected-files">No inputs selected</span>
                 </div>
             </div>
 
@@ -77,4 +82,5 @@
     <!-- The Javascript that connects UI to Electron Preload API -->
     <script src="renderer.js"></script>
 </body>
+
 </html>

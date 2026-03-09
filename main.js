@@ -7,6 +7,28 @@ const fs = require('fs');
 const FFMPEG_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffmpeg.exe";
 const FFPROBE_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffprobe.exe";
 
+async function getAllVideos(dirPath, rootDir) {
+    let results = [];
+    const _rootDir = rootDir || dirPath;
+    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+
+    for (let entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            results = results.concat(await getAllVideos(fullPath, _rootDir));
+        } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext)) {
+                results.push({
+                    fullPath: fullPath,
+                    relativePath: path.relative(_rootDir, fullPath)
+                });
+            }
+        }
+    }
+    return results;
+}
+
 let mainWindow;
 
 function createWindow() {
@@ -54,6 +76,14 @@ ipcMain.handle('dialog:selectFiles', async () => {
     return result.filePaths;
 });
 
+// 1.5 Select Input Folders
+ipcMain.handle('dialog:selectFolders', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'multiSelections']
+    });
+    return result.filePaths;
+});
+
 // 2. Select Output Directory
 ipcMain.handle('dialog:selectOutputDir', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -73,20 +103,57 @@ ipcMain.handle('compress:start', async (event, config) => {
         return { success: false, error: "Missing files or destination." };
     }
 
+    // --- RECURSIVE FOLDER RESOLUTION ---
+    let allMediaForProcessing = [];
+    for (const inputPath of inputFiles) {
+        try {
+            const statInfo = await fs.promises.stat(inputPath);
+            if (statInfo.isDirectory()) {
+                const videos = await getAllVideos(inputPath, inputPath);
+                allMediaForProcessing.push(...videos);
+            } else {
+                const ext = path.extname(inputPath).toLowerCase();
+                if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext)) {
+                    allMediaForProcessing.push({
+                        fullPath: inputPath,
+                        relativePath: path.basename(inputPath)
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Error statting input:", e);
+        }
+    }
+
+    if (allMediaForProcessing.length === 0) {
+        return { success: false, error: "No video files found in the selected inputs." };
+    }
+
     let currentIndex = 0;
 
     // Process files sequentially to not overload the system
-    for (const file of inputFiles) {
+    for (const media of allMediaForProcessing) {
         currentIndex++;
-        const basename = path.parse(file).name;
-        const outputFile = path.join(outputDir, `${basename}_compressed.mp4`);
+        const file = media.fullPath;
+        const basename = path.parse(media.relativePath).name;
+
+        // --- MIRROR NESTED DIRECTORY STRUCTURE ---
+        const parsedRel = path.parse(media.relativePath);
+        const outputDirPath = path.join(outputDir, parsedRel.dir);
+
+        // Create directory if it doesn't exist recursively
+        if (!fs.existsSync(outputDirPath)) {
+            fs.mkdirSync(outputDirPath, { recursive: true });
+        }
+
+        const outputFile = path.join(outputDirPath, `${basename}_compressed.mp4`);
 
         // Notify UI which file is starting
         mainWindow.webContents.send('compress:progress', {
-            status: `Processing ${currentIndex}/${inputFiles.length}: ${basename}`,
+            status: `Processing ${currentIndex}/${allMediaForProcessing.length}: ${basename}`,
             percent: 0,
             currentFileIndex: currentIndex,
-            totalFiles: inputFiles.length
+            totalFiles: allMediaForProcessing.length
         });
 
         // Build FFmpeg Arguments Based on Preset & GPU Selection
