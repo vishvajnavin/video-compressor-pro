@@ -7,7 +7,7 @@ const fs = require('fs');
 const FFMPEG_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffmpeg.exe";
 const FFPROBE_PATH = "C:\\Users\\v\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.0.1-full_build\\bin\\ffprobe.exe";
 
-async function getAllVideos(dirPath, rootDir) {
+async function getAllFiles(dirPath, rootDir) {
     let results = [];
     const _rootDir = rootDir || dirPath;
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
@@ -15,15 +15,16 @@ async function getAllVideos(dirPath, rootDir) {
     for (let entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
         if (entry.isDirectory()) {
-            results = results.concat(await getAllVideos(fullPath, _rootDir));
+            results = results.concat(await getAllFiles(fullPath, _rootDir));
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
-            if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !entry.name.startsWith('._')) {
-                results.push({
-                    fullPath: fullPath,
-                    relativePath: path.relative(_rootDir, fullPath)
-                });
-            }
+            const isVideo = ['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !entry.name.startsWith('._');
+            
+            results.push({
+                fullPath: fullPath,
+                relativePath: path.relative(_rootDir, fullPath),
+                isVideo: isVideo
+            });
         }
     }
     return results;
@@ -109,15 +110,18 @@ ipcMain.handle('compress:start', async (event, config) => {
         try {
             const statInfo = await fs.promises.stat(inputPath);
             if (statInfo.isDirectory()) {
-                const videos = await getAllVideos(inputPath, inputPath);
-                allMediaForProcessing.push(...videos);
+                const files = await getAllFiles(inputPath, inputPath);
+                allMediaForProcessing.push(...files);
             } else {
                 const ext = path.extname(inputPath).toLowerCase();
                 const basename = path.basename(inputPath);
-                if (['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !basename.startsWith('._')) {
+                const isVideo = ['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !basename.startsWith('._');
+                
+                if (isVideo) {
                     allMediaForProcessing.push({
                         fullPath: inputPath,
-                        relativePath: path.basename(inputPath)
+                        relativePath: path.basename(inputPath),
+                        isVideo: isVideo
                     });
                 }
             }
@@ -125,6 +129,9 @@ ipcMain.handle('compress:start', async (event, config) => {
             console.error("Error statting input:", e);
         }
     }
+
+    // Filter out non-video files from the processing list so we don't count them in UI totals
+    allMediaForProcessing = allMediaForProcessing.filter(media => media.isVideo);
 
     if (allMediaForProcessing.length === 0) {
         return { success: false, error: "No video files found in the selected inputs." };
@@ -146,6 +153,7 @@ ipcMain.handle('compress:start', async (event, config) => {
         if (!fs.existsSync(outputDirPath)) {
             fs.mkdirSync(outputDirPath, { recursive: true });
         }
+
 
         const outputFile = path.join(outputDirPath, `${basename}_compressed.mp4`);
 
@@ -189,6 +197,17 @@ ipcMain.handle('compress:start', async (event, config) => {
                 args.push('-preset', presetSpeed, '-crf', '18');
             }
             args.push('-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k');
+
+        } else if (preset === 'smooth_edit') {
+            // ALL-Intra Smooth Editing for Resolve/Premiere
+            args.push('-c:v', videoCodec);
+            args.push('-g', '1'); // Force every frame as keyframe
+            if (useGpu) {
+                args.push('-preset', presetSpeed, '-cq', '18');
+            } else {
+                args.push('-preset', presetSpeed, '-crf', '18');
+            }
+            args.push('-pix_fmt', 'yuv420p', '-c:a', 'copy'); // Copy original audio
 
         } else {
             // Standard
@@ -244,7 +263,7 @@ ipcMain.handle('compress:start', async (event, config) => {
                         rawTime: timeMatch[0],
                         percent: percent,
                         currentFileIndex: currentIndex,
-                        totalFiles: inputFiles.length
+                        totalFiles: allMediaForProcessing.length
                     });
                 }
             });
