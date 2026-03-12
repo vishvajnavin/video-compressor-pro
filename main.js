@@ -212,6 +212,18 @@ ipcMain.handle('compress:start', async (event, config) => {
             }
             args.push('-pix_fmt', 'yuv420p', '-c:a', 'copy'); // Copy original audio
 
+        } else if (preset === 'smooth_edit_cq28') {
+            // Same as above but with lower quality (28) for smaller file sizes
+            args.push('-c:v', videoCodec);
+            args.push('-g', '1'); 
+            if (useGpu) {
+                args.push('-bf', '0'); 
+                args.push('-preset', 'p1', '-cq', '28');
+            } else {
+                args.push('-preset', presetSpeed, '-crf', '28');
+            }
+            args.push('-pix_fmt', 'yuv420p', '-c:a', 'copy'); 
+
         } else {
             // Standard
             args.push('-c:v', videoCodec);
