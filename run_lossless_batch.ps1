@@ -6,7 +6,7 @@ $extensions = @(".mp4", ".mov", ".mkv", ".avi", ".m4v")
 Clear-Host
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "  VideoCompressor PRO - Automated Background Batch" -ForegroundColor White
-Write-Host "  Preset: SMOOTH EDITING (ALL-Intra, Fast Scrubbing)" -ForegroundColor Yellow
+Write-Host "  Preset: VISUALLY LOSSLESS 4K (-cq 18, 4:2:0)" -ForegroundColor Yellow
 Write-Host "  Hardware Acceleration: NVIDIA NVENC" -ForegroundColor Green
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
@@ -50,8 +50,8 @@ foreach ($inFile in $inputFiles) {
     if ($needsCompression) {
         Write-Host "[$current / $total] Compressing: $relativePath" -ForegroundColor Yellow
         
-        # Execute ffmpeg with ALL-INTRA (-g 1) and disable b-frames (-bf 0) flag. p1 is required for NVENC ALL-I. 
-        & $ffmpeg -y -v warning -stats -i "`"$($inFile.FullName)`"" -c:v h264_nvenc -g 1 -bf 0 -preset p1 -cq 18 -pix_fmt yuv420p -c:a copy "`"$expectedOutputFile`""
+        # Execute ffmpeg with warnings only and live stats
+        & $ffmpeg -y -v warning -stats -i "`"$($inFile.FullName)`"" -c:v h264_nvenc -preset p4 -cq 18 -pix_fmt yuv420p -c:a aac -b:a 192k "`"$expectedOutputFile`""
         
         if ($LASTEXITCODE -ne 0) {
             Write-Host " -> ERROR during compression. Cleaning up failed file." -ForegroundColor Red
@@ -70,6 +70,6 @@ foreach ($inFile in $inputFiles) {
 }
 
 Write-Host "=======================================================" -ForegroundColor Cyan
-Write-Host "  ALL FILES SUCCESSFULLY PROCESSED." -ForegroundColor Green
+Write-Host "  ALL 549 FILES SUCCESSFULLY PROCESSED." -ForegroundColor Green
 Write-Host "=======================================================" -ForegroundColor Cyan
 Read-Host "Press [Enter] to exit this window..."

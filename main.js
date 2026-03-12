@@ -20,11 +20,13 @@ async function getAllFiles(dirPath, rootDir) {
             const ext = path.extname(entry.name).toLowerCase();
             const isVideo = ['.mp4', '.mov', '.mkv', '.avi', '.m4v'].includes(ext) && !entry.name.startsWith('._');
             
-            results.push({
-                fullPath: fullPath,
-                relativePath: path.relative(_rootDir, fullPath),
-                isVideo: isVideo
-            });
+            if (isVideo) {
+                results.push({
+                    fullPath: fullPath,
+                    relativePath: path.relative(_rootDir, fullPath),
+                    isVideo: isVideo
+                });
+            }
         }
     }
     return results;
@@ -199,11 +201,12 @@ ipcMain.handle('compress:start', async (event, config) => {
             args.push('-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k');
 
         } else if (preset === 'smooth_edit') {
-            // ALL-Intra Smooth Editing for Resolve/Premiere
+            // ALL-Intra Smooth Editing for Resolve/Premiere requires p1 preset and 0 b-frames for NVENC
             args.push('-c:v', videoCodec);
             args.push('-g', '1'); // Force every frame as keyframe
             if (useGpu) {
-                args.push('-preset', presetSpeed, '-cq', '18');
+                args.push('-bf', '0'); // Required for NVENC to allow -g 1
+                args.push('-preset', 'p1', '-cq', '18');
             } else {
                 args.push('-preset', presetSpeed, '-crf', '18');
             }
